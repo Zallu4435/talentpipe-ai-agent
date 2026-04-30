@@ -1,0 +1,1315 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        0
+      ],
+      "id": "a96c301e-d2a8-4dda-af82-2a44ee8ebbe7",
+      "name": "Telegram Trigger",
+      "webhookId": "8a457d48-c8e2-4aae-b380-9671cf457e4e",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $node[\"Telegram Trigger\"].json.message.text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "systemMessage": "You are a professional and concise AI assistant. Since you are responding on Telegram, use bullet points for long lists and keep your overall response brief and helpful."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        -864
+      ],
+      "id": "8563be42-f610-4190-bbf7-3ce814960e99",
+      "name": "Message a model",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "alwaysOutputData": false,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "3qff7dZ4ZRQMjjMN",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an AI data extractor. Analyze the following scraped webpage text.\n\nIf the text is clearly malicious, irrelevant, or NOT a job posting, return exactly this JSON:\n{\"is_job\": false}\n\nIf the text IS a job posting, extract the data and return exactly this JSON structure:\n{\n  \"is_job\": true,\n  \"title\": \"The Job Title\",\n  \"company\": \"The Company Name\",\n  \"salary\": \"The Salary (or 'Not Listed')\",\n  \"skills\": [\"skill 1\", \"skill 2\", \"skill 3\"]\n}\n\nReturn ONLY valid JSON. Do not include markdown formatting like ```json.\n\nHere is the webpage text:\n{{ $json.data }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        944,
+        -1104
+      ],
+      "id": "bc2c38e0-1786-4d2b-a4df-dc298b2a1164",
+      "name": "Extract Job Data (Gemini)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "3qff7dZ4ZRQMjjMN",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.content.parts[0].text).is_job }}",
+                    "rightValue": "={{ true }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a42fec54-96c6-4da0-af59-29a371d5c257"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Valid Job"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e9fdde05-f51a-438f-b00a-2f32ffac1b60",
+                    "leftValue": "={{ JSON.parse($json.content.parts[0].text).is_job }}",
+                    "rightValue": "={{ false }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Invalid Link"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1280,
+        -1104
+      ],
+      "id": "bb2e5c1f-44db-48e3-bd67-39f42c7ca40a",
+      "name": "Router: Is Valid Job?"
+    },
+    {
+      "parameters": {
+        "url": "=https://r.jina.ai/{{ $('Telegram Trigger').item.json.message.text.trim() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        720,
+        -1104
+      ],
+      "id": "c5f6a7d7-4cf2-4083-8f74-b3a3e228143b",
+      "name": "Scrape Webpage (Jina AI)"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "18kLVtLtMP6TyQnl3AJq6a9HHDMusH6dooYqkzH-PYFU",
+          "mode": "list",
+          "cachedResultName": "Career_Intelligence_Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18kLVtLtMP6TyQnl3AJq6a9HHDMusH6dooYqkzH-PYFU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18kLVtLtMP6TyQnl3AJq6a9HHDMusH6dooYqkzH-PYFU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "telegram_user_id": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+            "title": "={{ JSON.parse($('Extract Job Data (Gemini)').item.json.content.parts[0].text).title }}",
+            "company": "={{ JSON.parse($('Extract Job Data (Gemini)').item.json.content.parts[0].text).company }}",
+            "salary": "={{ JSON.parse($('Extract Job Data (Gemini)').item.json.content.parts[0].text).salary }}",
+            "skills": "={{ JSON.parse($('Extract Job Data (Gemini)').item.json.content.parts[0].text).skills.join(', ') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "telegram_user_id",
+              "displayName": "telegram_user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "salary",
+              "displayName": "salary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "skills",
+              "displayName": "skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1488,
+        -1200
+      ],
+      "id": "76085d44-9895-4106-a9af-30eee6599d9c",
+      "name": "Save to Database (Google Sheets)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kyyyEJghlMkjwO3F",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "=✅ **Job Successfully Saved to Database!**\n\n🏢 **Company:** {{ JSON.parse($('Extract Job Data (Gemini)').item.json.content.parts[0].text).company }}\n💼 **Title:** {{ JSON.parse($('Extract Job Data (Gemini)').item.json.content.parts[0].text).title }}\n💰 **Salary:** {{ JSON.parse($('Extract Job Data (Gemini)').item.json.content.parts[0].text).salary }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1696,
+        -1200
+      ],
+      "id": "df52bf92-4b9c-4ee5-bf30-4aa0cf4acf52",
+      "name": "Send Success Notification",
+      "webhookId": "02d621bb-d9e2-4a62-8090-4a187feae70c",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "⚠️ That doesn't look like a valid job posting. Please send a link to a specific job description so I can analyze it for you.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1488,
+        -992
+      ],
+      "id": "ca4377f2-6440-407a-898a-cfadc08dea81",
+      "name": "Send Invalid Link Warning",
+      "webhookId": "71ff9d4f-3c96-416a-9cf1-08115764b608",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1168,
+        -640
+      ],
+      "id": "20d70e5c-2207-4adf-9164-b59995ef15e3",
+      "name": "Process Conversational Chat"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1168,
+        -464
+      ],
+      "id": "7ec97ed9-e614-4e36-8cb4-70b3ae679167",
+      "name": "Gemini Brain",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "3qff7dZ4ZRQMjjMN",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.from.id.toString() }}",
+        "sessionTTL": 3600
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.5,
+      "position": [
+        1264,
+        -352
+      ],
+      "id": "47cccc53-24fd-42dc-a448-c8b100ac6384",
+      "name": "Load Chat History",
+      "credentials": {
+        "redis": {
+          "id": "7Kn9RxCapTQeZLM5",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $node[\"Telegram Trigger\"].json.message.from.id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        256,
+        -240
+      ],
+      "id": "1d816276-2faf-472f-9df9-d9374f2a3d62",
+      "name": "Show Typing Indicator",
+      "webhookId": "23efc395-c12f-47cd-bf4a-046f8fab61d8",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a36841b2-86b2-4d7e-8600-a1de7fc44fa2",
+              "leftValue": "={{ $('Telegram Trigger').item.json.message.text || $('Telegram Trigger').item.json.message.caption || \"\" }}",
+              "rightValue": "http",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        -656
+      ],
+      "id": "5b42f7cc-ddfa-4abd-8a81-2262264a73bc",
+      "name": "Router: Link vs. Chat"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4addc1b6-1bc2-47ef-a149-9658d0d099d8",
+              "leftValue": "={{ $json.message.text.length }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            },
+            {
+              "id": "ca35e373-636f-4ebd-a526-d46b980854fd",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -112,
+        0
+      ],
+      "id": "a05963b8-afee-4d64-99d0-47eb75696e0d",
+      "name": "Check: Valid Input?"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node[\"Telegram Trigger\"].json.message.from.id }}",
+        "text": "I can only understand text messages right now, and please keep them short (under 100 characters)!",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        128,
+        144
+      ],
+      "id": "673e5f5f-b8ba-4823-8e43-f70ae58e7877",
+      "name": "Send Invalid Input Error",
+      "webhookId": "62f53691-a914-41a3-92aa-4667fd265377",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "incr",
+        "key": "=rate_limit:{{ $json.message.from.id }}",
+        "expire": true,
+        "ttl": 86400
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        416,
+        -96
+      ],
+      "id": "a0ec3bc2-a186-4bd3-b32a-1f49975bc62c",
+      "name": "Redis: Update Rate Limit",
+      "credentials": {
+        "redis": {
+          "id": "7Kn9RxCapTQeZLM5",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "users",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "telegram_user_id",
+              "keyValue": "={{ $node[\"Telegram Trigger\"].json[\"message\"][\"from\"][\"id\"] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "6aeb3fda-faf7-4ad8-bbab-3cd8f75ce2da",
+      "name": "DB: Fetch User Record",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "6UEkp1aYL8uFx36P",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "58c1361a-7ed5-4e93-a91a-eb4d8779c2b0",
+              "leftValue": "={{ $json.telegram_user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "2fd79a25-b7e4-40cd-ba05-24e215fbcb33",
+      "name": "Check: User Exists?"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "approved",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2624d987-169a-4ae6-bcca-6190993f1a99"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Approved"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "2b1e2394-20aa-4043-8a6b-7c85cd20f753",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "pending",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Pending"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a86a1c2d-b46d-43d2-b828-03aa844176e7",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "blocked",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Blocked"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        -192
+      ],
+      "id": "19bff421-de2e-4439-a560-15df2f56b77f",
+      "name": "Router: User Auth Status"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node[\"Telegram Trigger\"].json.message.from.id }}",
+        "text": "Your account is still pending approval. Please hang tight!",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1536,
+        -256
+      ],
+      "id": "89f98213-6091-4e5f-a14b-d082b53bc316",
+      "name": "Send 'Approval Pending' Msg",
+      "webhookId": "eda14e0a-9e24-4073-8f9c-b428d85a12e2",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        -64
+      ],
+      "id": "823677c2-fe17-4fef-88fe-b77ec07f64c6",
+      "name": "Drop Blocked User"
+    },
+    {
+      "parameters": {
+        "tableId": "users",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "telegram_user_id",
+              "fieldValue": "={{ $node[\"Telegram Trigger\"].json.message.from.id }}"
+            },
+            {
+              "fieldId": "username",
+              "fieldValue": "={{ $node[\"Telegram Trigger\"].json.message.from.username }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        48
+      ],
+      "id": "79ea8d14-5db1-4ec9-8fac-a1048975f3a8",
+      "name": "DB: Register New User",
+      "credentials": {
+        "supabaseApi": {
+          "id": "6UEkp1aYL8uFx36P",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node[\"Telegram Trigger\"].json.message.from.id }}",
+        "text": "Welcome! Your account has been registered and is currently Pending. I've notified Muhammed to approve your access. I'll message you here as soon as you're all set!",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        48
+      ],
+      "id": "9b5d7c8e-1578-418e-bc40-8d4a6cb54d18",
+      "name": "Send Welcome Message",
+      "webhookId": "24ec1d33-073c-4a7c-91af-d2e03bbdc87f",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "2116610981",
+        "text": "New user waiting for approval!",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Approve",
+                    "additionalFields": {
+                      "callback_data": "=approve_{{ $node[\"Telegram Trigger\"].json.message.from.id }}"
+                    }
+                  },
+                  {
+                    "text": "🚫 Block",
+                    "additionalFields": {
+                      "callback_data": "=block_{{ $node[\"Telegram Trigger\"].json.message.from.id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        240
+      ],
+      "id": "e50d23b0-4728-4ba4-b43e-f7e09c15c4d1",
+      "name": "Send Onboarding Instructions",
+      "webhookId": "ba1a285e-a90a-4bd4-995c-dc7cbec55813",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5a51b912-fd76-472b-a714-6c066bd479b1",
+              "leftValue": "={{ $json.message?.from?.id || $json.callback_query?.from?.id }}",
+              "rightValue": "2116610981",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "f910829b-0e0c-489e-b9b0-3448368c717b",
+              "leftValue": "={{ $json.callback_query?.data }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        80,
+        -48
+      ],
+      "id": "d039b953-f5d1-4acc-947e-b0b405b4319f",
+      "name": "Check: Is Admin Callback?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "users",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "telegram_user_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.callback_query.data.split('_')[1] }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.callback_query.data.split('_')[0] + 'd' }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        416,
+        96
+      ],
+      "id": "14fe1923-a97e-4c50-b135-48af54dd5b1e",
+      "name": "DB: Update User Status",
+      "credentials": {
+        "supabaseApi": {
+          "id": "6UEkp1aYL8uFx36P",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "2116610981",
+        "text": "✅ Done! User has been updated.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        96
+      ],
+      "id": "e8512ac4-a1ac-4ff1-8919-79b0402b5c92",
+      "name": "Admin: Confirm Update Success",
+      "webhookId": "3c58d276-695c-49d1-8b98-9d7b912fef19",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node[\"Telegram Trigger\"].json.callback_query.data.split('_')[1] }}",
+        "text": "🎉 Great news! Your account has been approved by Muhammed. You can now ask me questions!",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        704,
+        304
+      ],
+      "id": "7d86a0a8-1756-4279-9e0d-632af2b2d6db",
+      "name": "User: Send Approval Alert",
+      "webhookId": "de98bb7f-a30c-46a7-a652-e67a889976d0",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c50b64a6-ac24-4285-97cb-259647fc165e",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1504,
+        -640
+      ],
+      "id": "4f7e1fa7-766a-488e-bb34-fdedf1bbaff6",
+      "name": "Check: Message Error"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node[\"Telegram Trigger\"].json.message.from.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1712,
+        -576
+      ],
+      "id": "a4ffeaec-27a1-421e-8daa-bb877a7c7f13",
+      "name": "Send Chat Response (Primary)1",
+      "webhookId": "e280a952-829d-4089-aa90-8c4fb25bb041",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node[\"Telegram Trigger\"].json.message.from.id }}",
+        "text": "I am currently experiencing a high volume of requests and the AI servers are temporarily busy. Please try your question again in a moment.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1712,
+        -768
+      ],
+      "id": "26f10ef5-9d63-4933-9b88-7a02ace0bac7",
+      "name": "Send Chat Response (Fallback)",
+      "webhookId": "41190426-8458-45b0-92a3-83ef29f81c1e",
+      "credentials": {
+        "telegramApi": {
+          "id": "7EH0zZ01k9AuSOV2",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check: Valid Input?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        []
+      ]
+    },
+    "Extract Job Data (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Router: Is Valid Job?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router: Is Valid Job?": {
+      "main": [
+        [
+          {
+            "node": "Save to Database (Google Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Invalid Link Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Webpage (Jina AI)": {
+      "main": [
+        [
+          {
+            "node": "Extract Job Data (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Database (Google Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Send Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Conversational Chat": {
+      "main": [
+        [
+          {
+            "node": "Check: Message Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Brain": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Process Conversational Chat",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Chat History": {
+      "ai_memory": [
+        [
+          {
+            "node": "Process Conversational Chat",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Show Typing Indicator": {
+      "main": [
+        [
+          {
+            "node": "Redis: Update Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router: Link vs. Chat": {
+      "main": [
+        [
+          {
+            "node": "Scrape Webpage (Jina AI)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Conversational Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Valid Input?": {
+      "main": [
+        [
+          {
+            "node": "Check: Is Admin Callback?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Invalid Input Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis: Update Rate Limit": {
+      "main": [
+        [
+          {
+            "node": "DB: Fetch User Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Fetch User Record": {
+      "main": [
+        [
+          {
+            "node": "Check: User Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: User Exists?": {
+      "main": [
+        [
+          {
+            "node": "Router: User Auth Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB: Register New User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router: User Auth Status": {
+      "main": [
+        [
+          {
+            "node": "Router: Link vs. Chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send 'Approval Pending' Msg",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Drop Blocked User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Register New User": {
+      "main": [
+        [
+          {
+            "node": "Send Onboarding Instructions",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Welcome Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Onboarding Instructions": {
+      "main": [
+        []
+      ]
+    },
+    "Check: Is Admin Callback?": {
+      "main": [
+        [
+          {
+            "node": "DB: Update User Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Show Typing Indicator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Update User Status": {
+      "main": [
+        [
+          {
+            "node": "Admin: Confirm Update Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin: Confirm Update Success": {
+      "main": [
+        [
+          {
+            "node": "User: Send Approval Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Message Error": {
+      "main": [
+        [
+          {
+            "node": "Send Chat Response (Fallback)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Chat Response (Primary)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "73479d26-22b2-4f1c-93db-680b14f56e38",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "063d4e5c7b4a88ad8d2f2748fba3ed4f0983da6f8e53fd2505cb7ef22ab8226b"
+  },
+  "id": "keAvBmZCbPfqaHC5",
+  "tags": []
+}
