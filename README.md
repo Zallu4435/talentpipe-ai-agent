@@ -1,74 +1,378 @@
 # 🤖 Telegram AI Career Agent (n8n Orchestration)
 
-![n8n](https://img.shields.io/badge/n8n-Workflow-FF6C37?style=for-the-badge&logo=n8n&logoColor=white)
-![Telegram](https://img.shields.io/badge/Telegram-Bot-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)
-![Google Gemini](https://img.shields.io/badge/Google_Gemini-AI-8E75B2?style=for-the-badge&logo=google&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-Memory-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+<p align="center">
+  <strong>Autonomous AI Telegram Bot for Job Extraction & Conversational Intelligence</strong>
+</p>
 
-An automated, intelligent dual-purpose Telegram bot built entirely within **n8n**. This workflow acts as both a conversational AI assistant (with memory) and a robust data extraction pipeline that scrapes job postings, parses them using LLMs, and saves the structured data to a database.
+<p align="center">
+  Production-grade n8n automation system combining conversational AI memory,
+  intelligent job scraping, and structured data extraction into a single
+  Telegram interface powered by Gemini, Redis, and Jina AI.
+</p>
 
-## ✨ Core Features
+<p align="center">
+  <strong>Core Modes</strong><br>
+  💬 AI Assistant &nbsp;&nbsp;•&nbsp;&nbsp; 🔍 Job Extraction Pipeline
+</p>
 
-*   **Intelligent Intent Routing:** Automatically detects whether a user is sending a standard chat message or a URL, routing the data to the appropriate processing pipeline.
-*   **AI Conversational Agent:** Uses Google Gemini and Redis-backed chat memory to maintain context in conversations.
-*   **Bypass Scraper Blocking:** Integrates **Jina AI (`r.jina.ai`)** to convert heavy, JavaScript-loaded web pages into clean Markdown, bypassing standard bot protections (like 451/403 errors).
-*   **LLM Data Parsing:** Instructs Gemini to read scraped Markdown and extract specific JSON key-value pairs (Company, Title, Salary, Skills).
-*   **Automated Database Entry:** Validates the AI's output and automatically appends successful job scrapes into Google Sheets.
-*   **Admin Approval System:** Features an onboarding flow with rate-limiting and inline Telegram callback buttons for admin approval of new users.
+<p align="center">
+  <img src="https://img.shields.io/badge/n8n-Workflow-FF6C37?style=for-the-badge&logo=n8n&logoColor=white" />
 
----
+  <img src="https://img.shields.io/badge/Telegram-Bot-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" />
 
-## 🏗️ System Architecture
+  <img src="https://img.shields.io/badge/Google_Gemini-AI-8E75B2?style=for-the-badge&logo=google&logoColor=white" />
 
-The n8n workflow is divided into three primary micro-pipelines:
-
-1.  **Auth & Onboarding Layer:** 
-    *   Intercepts incoming Telegram messages.
-    *   Checks Redis for rate limits and queries the database for user status.
-    *   Routes new users to a pending state and alerts the Admin via inline callback buttons for approval/rejection.
-2.  **The Extraction Pipeline (True Branch):** 
-    *   Triggered when the Intent Router detects an `http` string.
-    *   `Jina Web Scraper` -> `Gemini Brain (JSON Extraction)` -> `Validation Router` -> `Google Sheets` -> `Telegram Success Notification`.
-3.  **The Conversational Pipeline (False Branch):**
-    *   Triggered on standard text input.
-    *   Loads history from Redis -> Processes via Gemini -> Returns formatted response to Telegram.
+  <img src="https://img.shields.io/badge/Redis-Memory-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
+</p>
 
 ---
 
-## 🚀 Quick Start & Installation
+# 📌 Overview
 
-Because this is an n8n orchestration project, installation is as simple as importing the JSON blueprint into your own environment.
+The **Telegram AI Career Agent** is a production-grade automation system built entirely in **n8n**.
 
-### Prerequisites
-*   A running instance of [n8n](https://n8n.io/) (Self-hosted or Cloud).
-*   A Telegram Bot Token (via BotFather).
-*   A Google Cloud Project (for Gemini API and Google Sheets API).
-*   A Redis instance (for chat memory and rate limiting).
+It combines conversational AI, intelligent job scraping, structured data extraction, and persistent memory into a single Telegram-powered interface.
 
-### Setup Instructions
+The system acts as a dual-purpose AI agent:
 
-1.  **Clone the repository:**
-    ```bash
-    git clone [Your Repository URL]
-    ```
-2.  **Import the Workflow:**
-    *   Open your n8n dashboard.
-    *   Create a new workflow.
-    *   Click the **"..."** menu in the top right -> **Import from File**.
-    *   Select the `workflow.json` file from this repository.
-3.  **Configure Credentials:**
-    Once imported, n8n will prompt you to connect your credentials. You will need to add:
-    *   `Telegram API`
-    *   `Google Gemini API`
-    *   `Google Sheets OAuth2`
-    *   `Redis Server Details`
-4.  **Activate:** Toggle the workflow to **Active** and send a message to your Telegram bot!
+- 💬 AI Conversational Assistant
+- 🔍 Automated Job Extraction Engine
+
+Designed for:
+
+- AI-assisted Telegram workflows
+- Job opportunity aggregation
+- Structured web data extraction
+- Persistent conversational memory
+- Admin-controlled automation systems
 
 ---
 
-## 🛠️ Configuration Details
+# ✨ Key Features
 
-### Web Scraper Setup (Jina AI)
-To ensure the scraper bypasses Cloudflare/bot protections, the HTTP Request node is configured to prepend the Jina Reader API to the user's input:
+## 💬 Conversational AI Engine
+
+- Context-aware AI chat using Google Gemini
+- Redis-backed persistent memory
+- Multi-turn conversational handling
+- Telegram-native interactions
+- Structured AI response formatting
+
+---
+
+## 🔎 Intelligent Job Extraction Pipeline
+
+- Automatic URL detection from Telegram messages
+- Web scraping using Jina AI Reader (`r.jina.ai`)
+- Markdown conversion pipeline
+- AI-powered structured JSON extraction
+- Output validation layer
+- Automatic Google Sheets insertion
+
+---
+
+## 🧠 Smart Intent Routing
+
+Automatically routes incoming Telegram messages:
+
+| Input Type | Workflow |
+|------------|-----------|
+| Plain Text | Conversational AI Pipeline |
+| URL | Job Extraction Pipeline |
+
+Built entirely using conditional orchestration inside n8n.
+
+---
+
+## 🔐 Authentication & Access Control
+
+- New user onboarding workflow
+- Redis-based user state management
+- Rate limiting protection
+- Admin approval system
+- Telegram inline approval buttons
+- Pending → Approved access state machine
+
+---
+
+# 🏗️ System Architecture
+
+```text
+Telegram Trigger
+        │
+        ├── Intent Router
+        │        ├── Text → Gemini Chat + Redis Memory
+        │        └── URL → Jina Scraper → Gemini Parser → Sheets
+        │
+        └── Auth Layer (Redis + Admin Approval)
+```
+
+---
+
+# 🚀 Core Workflows
+
+## 💬 Conversational Pipeline
+
+```text
+Telegram Message
+        ↓
+Load Redis Memory
+        ↓
+Google Gemini
+        ↓
+Generate Response
+        ↓
+Telegram Reply
+```
+
+### Features
+
+- Context retention
+- Memory persistence
+- AI conversation continuity
+- Structured response generation
+
+---
+
+## 🔍 Job Extraction Pipeline
+
+```text
+Telegram URL
+        ↓
+Jina AI Scraper
+        ↓
+Markdown Conversion
+        ↓
+Gemini Structured Extraction
+        ↓
+JSON Validation
+        ↓
+Google Sheets Storage
+        ↓
+Telegram Confirmation
+```
+
+### Extracted Fields
+
+- Job Title
+- Company Name
+- Location
+- Salary
+- Experience
+- Skills
+- Application URL
+- Posted Date
+- Description
+
+---
+
+## 🔐 Authentication Workflow
+
+```text
+New User Message
+        ↓
+Redis User Check
+        ↓
+Rate Limiter
+        ↓
+Admin Approval Request
+        ↓
+Inline Button Approval
+        ↓
+User Activation
+```
+
+---
+
+# ⚙️ Tech Stack
+
+| Layer | Technology |
+|------|-------------|
+| Automation | n8n |
+| Messaging | Telegram Bot API |
+| AI Engine | Google Gemini |
+| Memory Layer | Redis |
+| Web Scraping | Jina AI |
+| Data Storage | Google Sheets |
+
+---
+
+# 📦 Quick Start
+
+## 1️⃣ Clone Repository
+
+```bash
+git clone <your-repo-url>
+cd telegram-ai-career-agent
+```
+
+---
+
+## 2️⃣ Import Workflow
+
+1. Open n8n
+2. Create a new workflow
+3. Import `workflow.json`
+
+---
+
+## 3️⃣ Configure Credentials
+
+Add the following credentials inside n8n:
+
+- Telegram Bot API
+- Google Gemini API
+- Redis
+- Google Sheets OAuth
+
+---
+
+## 4️⃣ Activate Workflow
+
+Turn the workflow **ON** and start messaging your Telegram bot.
+
+---
+
+# 🌐 Web Scraping Layer
+
+The system uses Jina AI Reader for extracting readable web content.
+
+## Endpoint
+
+```text
+https://r.jina.ai/http://target-url.com
+```
+
+## n8n Expression
+
 ```javascript
-[https://r.jina.ai/](https://r.jina.ai/){{ $('Telegram Trigger').item.json.message.text.trim() }}
+https://r.jina.ai/{{ $('Telegram Trigger').item.json.message.text.trim() }}
+```
+
+---
+
+# 🧠 Workflow Highlights
+
+✅ Dual AI architecture (Chat + Extraction)  
+✅ Redis-backed persistent memory  
+✅ Fully orchestrated inside n8n  
+✅ AI-powered structured extraction  
+✅ Telegram-native experience  
+✅ Admin-controlled onboarding  
+✅ Safe JSON validation pipeline  
+✅ Intelligent workflow routing  
+
+---
+
+# 📂 Recommended Project Structure
+
+```text
+telegram-ai-career-agent/
+│
+├── workflows/
+│   └── workflow.json
+│
+├── docs/
+│   └── architecture.png
+│
+├── screenshots/
+│   ├── telegram-chat.png
+│   ├── admin-approval.png
+│   ├── sheets-output.png
+│   └── workflow-overview.png
+│
+├── .env.example
+├── README.md
+└── LICENSE
+```
+
+---
+
+# 🔐 Security Considerations
+
+- Store secrets using n8n credentials
+- Enable Redis authentication
+- Restrict Telegram admin IDs
+- Add request validation
+- Implement webhook security
+- Use rate limiting for abuse prevention
+
+---
+
+# 📸 Recommended Screenshots
+
+Add screenshots for:
+
+- Telegram AI conversation
+- Job extraction flow
+- Admin approval interface
+- Google Sheets results
+- Full n8n workflow overview
+
+---
+
+# 🔮 Future Improvements
+
+- PostgreSQL migration
+- Vector memory system
+- Semantic job search
+- Multi-language support
+- Web dashboard
+- Analytics & monitoring
+- Job alert subscriptions
+- Resume parsing integration
+
+---
+
+# 🛠️ Possible Enhancements
+
+## AI Features
+
+- Tool calling
+- Function agents
+- Multi-agent workflows
+- Vector retrieval memory
+
+## Infrastructure
+
+- Docker deployment
+- Queue workers
+- Webhook scaling
+- Monitoring dashboards
+
+## Data Layer
+
+- PostgreSQL
+- Supabase
+- Pinecone / Weaviate
+- ElasticSearch
+
+---
+
+# 📜 License
+
+MIT License
+
+---
+
+# ⭐ Support
+
+If you found this project useful:
+
+- ⭐ Star the repository
+- 🍴 Fork the project
+- 🚀 Share improvements
+- 🤝 Contribute workflows
+
+---
+
+# 👨‍💻 Author
+
+Built with ❤️ using:
+
+- n8n
+- Telegram Bot API
+- Google Gemini
+- Redis
+- Jina AI
+- Google Sheets
